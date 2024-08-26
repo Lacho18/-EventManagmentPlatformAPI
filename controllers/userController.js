@@ -4,7 +4,7 @@ const client = require('../connection');
 const getUser = asyncHandler(async (req, res) => {
     const { email, password } = JSON.parse(req.query.data);
     console.log(email + "    " + password);
-    let result = await findUser(['email', 'password'], [email, password]);
+    let result = await findUser(['email', 'password'], [email, password], ['id', 'email', 'firstName', 'lastName', 'role']);
     console.log(result.rows[0]);
 
     if (result.rows.length === 1) {
@@ -112,14 +112,22 @@ const removeUser = asyncHandler((req, res) => {
 });
 
 //Finds users by specific request
-async function findUser(fields, values) {
+async function findUser(fields, values, columns = '*') {
     if (fields.length !== values.length) {
         return "Invalid parameters";
     }
 
+    let specColumns;
+    if (Array.isArray(columns)) {
+        specColumns = columns.map(column => `"${column}"`);
+    } else {
+        specColumns = columns;
+    }
+
     const conditions = fields.map((field, index) => `"${field}" = $${index + 1}`).join(' AND ');
+
     let query = `
-            SELECT * FROM users WHERE ${conditions}
+            SELECT ${specColumns} FROM users WHERE ${conditions}
     `;
 
     const result = await client.query(query, values)
