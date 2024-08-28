@@ -1,15 +1,17 @@
 const asyncHandler = require('express-async-handler');
 const client = require('../connection');
-const { getRequestsHandler } = require('../functions/getRequestHandler');
+const { getRequestsHandler, getRequestsHandlerWithJoin } = require('../functions/getRequestHandler');
 
 //Function that get events by request
 const getEvents = asyncHandler(async (req, res) => {
     if (req.query.data) {
         const data = JSON.parse(req.query.data);
-        const keys = Object.keys(data);
-        const values = Object.values(data);
+        const keys = Object.keys(data.conditions);
+        const values = Object.values(data.conditions);
 
-        const result = await getRequestsHandler('upcomingEvents', keys, values);
+
+        //const result = await getRequestsHandler('upcomingEvents', keys, values);
+        const result = await getRequestsHandler('upcomingEvents', keys, values, data.join && data.join);
         console.log(result);
 
         if (result.rows.length === 1) {
