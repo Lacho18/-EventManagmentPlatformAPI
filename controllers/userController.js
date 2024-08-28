@@ -1,10 +1,11 @@
 const asyncHandler = require('express-async-handler');
 const client = require('../connection');
+const { getRequestsHandler } = require("../functions/getRequestHandler");
 
 const getUser = asyncHandler(async (req, res) => {
     const { email, password } = JSON.parse(req.query.data);
     console.log(email + "    " + password);
-    let result = await findUser(['email', 'password'], [email, password], ['id', 'email', 'firstName', 'lastName', 'role']);
+    let result = await getRequestsHandler("users", ['email', 'password'], [email, password], undefined, ['id', 'email', 'firstName', 'lastName', 'role']);
     console.log(result.rows[0]);
 
     if (result.rows.length === 1) {
@@ -27,7 +28,8 @@ const createUser = asyncHandler(async (req, res) => {
     });
 
     //Checks if the given email is unique
-    let sameEmail = await findUser(['email'], [data.email]);
+    let sameEmail = await getRequestsHandler('users', ['email'], [data.email]);
+
     if (sameEmail.rows.length !== 0) {
         return res.status(400).json({ message: "User with this email already exists!" });
     }
@@ -105,34 +107,11 @@ const createUser = asyncHandler(async (req, res) => {
 
 const updateUser = asyncHandler((req, res) => {
     console.log("Put user function");
+    console.log(req.body);
 });
 
 const removeUser = asyncHandler((req, res) => {
     console.log("Delete user function");
 });
-
-//Finds users by specific request
-async function findUser(fields, values, columns = '*') {
-    if (fields.length !== values.length) {
-        return "Invalid parameters";
-    }
-
-    let specColumns;
-    if (Array.isArray(columns)) {
-        specColumns = columns.map(column => `"${column}"`);
-    } else {
-        specColumns = columns;
-    }
-
-    const conditions = fields.map((field, index) => `"${field}" = $${index + 1}`).join(' AND ');
-
-    let query = `
-            SELECT ${specColumns} FROM users WHERE ${conditions}
-    `;
-
-    const result = await client.query(query, values)
-
-    return result;
-}
 
 module.exports = { getUser, createUser, updateUser, removeUser };

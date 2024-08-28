@@ -51,45 +51,4 @@ async function getRequestsHandler(table, fields, values, join = undefined, colum
     return result;
 }
 
-/*async function getRequestsHandlerWithJoin(table, fields, values, columns = '*', join = undefined) {
-    if (fields.length !== values.length) {
-        return "Invalid parameters";
-    }
-
-    let specColumns;
-    if (Array.isArray(columns)) {
-        specColumns = columns.map(column => `"${column}"`);
-    } else {
-        specColumns = columns;
-    }
-
-    const conditions = fields.map((field, index) => `"${field}" = $${index + 1}`).join(' AND ');
-
-    let query;
-
-    let joinExample = {
-        joiningWith: 'users',
-        fieldsToGet: ['firstName', 'lastName']
-    }
-
-    if (joinExample) {
-        let newField = joinExample.fieldsToGet.map((field) => `|| "${joinExample.joiningWith}"."${field}" ||`).join(" ' ' ");
-        newField = newField.slice(3, -3);
-        console.log("TYKA GLEDAY!")
-        query = `
-            SELECT "${table}".*,
-            (${newField}) AS "${joinExample.joiningWith}_data"
-            FROM
-            "${table}" AS "${table}"
-            JOIN
-            "${joinExample.joiningWith}" AS "${joinExample.joiningWith}" ON "${table}"."organizer_ID" = "${joinExample.joiningWith}".id
-            WHERE ${conditions}
-        `;
-        console.log(query);
-
-        const result = await client.query(query);
-        console.log(result.rows[0]);
-    }
-}*/
-
 module.exports = { getRequestsHandler };
