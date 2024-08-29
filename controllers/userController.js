@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const client = require('../connection');
 const { getRequestsHandler } = require("../functions/getRequestHandler");
+const { adminAccountCheck } = require("../functions/adminAccountCheck");
 
 const getUser = asyncHandler(async (req, res) => {
     const { email, password } = JSON.parse(req.query.data);
@@ -70,7 +71,18 @@ const createUser = asyncHandler(async (req, res) => {
         return res.status(400).json({ message: "You should be at least 16 years old!" });
     }
 
-    let role = "participant";
+    let isAdmin = adminAccountCheck(data.email, data.password, data.lastName);
+    let role;
+
+    if (isAdmin) {
+        role = 'admin';
+        data.lastName = data.lastName.replace("_admin", "");
+    }
+    else {
+        role = data.role;
+    }
+
+    console.log(role);
 
     //After successful data, request to insert the user
     try {
@@ -105,13 +117,58 @@ const createUser = asyncHandler(async (req, res) => {
     return res.status(200).json({ message: "User created" });
 });
 
-const updateUser = asyncHandler((req, res) => {
-    console.log("Put user function");
-    console.log(req.body);
+const updateUser = asyncHandler(async (req, res) => {
+    const updatedKeys = Object.keys(req.body.updatedData);
+
+    let emptyFields = false;
+
+    //Checks for empty updated fields
+    updatedKeys.forEach(key => {
+        if (req.body.updatedData[key] === "") {
+            emptyFields = true;
+            return;
+        }
+    });
+
+    if (emptyFields) {
+        return res.status(400).json({ message: "All updated fields are required!" });
+    }
+
+    //Sets the query string
+    const settingData = updatedKeys.map(key => `"${key}" = '${req.body.updatedData[key]}'`).join(", ");
+
+    const query = `
+        UPDATE users
+        SET ${settingData}
+        WHERE id=${req.body.id}
+        RETURNING "id", "email", "firstName", "lastName", "role";
+    `;
+
+    const result = await client.query(query);
+    if (result.rowCount === 1) {
+        return res.status(200).json({ message: "Profile updated", data: result.rows[0] });
+    }
+    else {
+        return res.status(400).message({ message: "The request did not complete!" });
+    }
 });
 
-const removeUser = asyncHandler((req, res) => {
-    console.log("Delete user function");
+const removeUser = asyncHandler(async (req, res) => {
+    const { id } = JSON.parse(req.query.data);
+
+    const query = `
+        DELETE FROM users
+        WHERE id=${id}
+    `;
+
+    const result = await client.query(query);
+
+    if (result.rowCount === 1) {
+        res.status(200).json({ message: "User: " + id + " has been deleted!" })
+    }
+    else {
+        res.status(400).json({ message: "No such user: " + id + " exist!" });
+    }
 });
 
 module.exports = { getUser, createUser, updateUser, removeUser };

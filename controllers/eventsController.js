@@ -9,6 +9,20 @@ const getEvents = asyncHandler(async (req, res) => {
         const keys = Object.keys(data.conditions);
         const values = Object.values(data.conditions);
 
+        if (data.conditions.minAndMaxPrice) {
+            const query = `
+                SELECT MIN(price) AS "lowestPrice", MAX(price) AS "highestPrice" FROM "upcomingEvents"
+            `;
+            const result = await client.query(query);
+
+            if (result.rowCount === 1) {
+                return res.status(200).json({ message: "Data of min and max prices!", data: result.rows[0] });
+            }
+            else {
+                return res.status(400).json({ message: "Bad request!" });
+            }
+            console.log(result)
+        }
 
         //const result = await getRequestsHandler('upcomingEvents', keys, values);
         const result = await getRequestsHandler('upcomingEvents', keys, values, data.join && data.join);
