@@ -18,6 +18,7 @@ app.get('/test', (req, res) => {
 
 app.use('/user', require('./routes/UserRoute'));
 app.use('/events', require('./routes/EventRoute'));
+app.use('/saveEvent', require('./routes/SaveEvent.js'));
 
 app.listen(PORT, () => {
     console.log("Server running on port " + PORT);
