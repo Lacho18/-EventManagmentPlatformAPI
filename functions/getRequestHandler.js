@@ -1,6 +1,6 @@
 const client = require('../connection');
 
-async function getRequestsHandler(table, fields, values, join = undefined, columns = '*') {
+async function getRequestsHandler(table, fields, values, join = undefined, columns = '*', queryParam = "") {
     //Checks if the given fields are equal to values in order to make correct WHERE clause
     if (fields.length !== values.length) {
         return "Invalid parameters";
@@ -40,8 +40,10 @@ async function getRequestsHandler(table, fields, values, join = undefined, colum
         `;
     }
     else {
+        //If there are not conditions there is not Where clause.
+        //Where clause can be send as 'queryParam from the frontend but only when conditions is empty'
         query = `
-        SELECT ${specColumns} FROM "${table}" WHERE ${conditions}
+        SELECT ${specColumns} FROM "${table}" ${conditions !== "" ? `WHERE ${conditions}` : ""} ${conditions === "" ? queryParam : ""}
         `;
     }
 

@@ -21,15 +21,16 @@ const getEvents = asyncHandler(async (req, res) => {
             else {
                 return res.status(400).json({ message: "Bad request!" });
             }
-            console.log(result)
         }
 
         //const result = await getRequestsHandler('upcomingEvents', keys, values);
-        const result = await getRequestsHandler('upcomingEvents', keys, values, data.join && data.join);
-        console.log(result);
+        const result = await getRequestsHandler('upcomingEvents', keys, values, data.join && data.join, "*", data.query && data.query);
 
         if (result.rows.length === 1) {
             return res.status(200).json({ message: "Successful request", eventData: result.rows[0] });
+        }
+        else if (result.rows.length > 1 && result.rows.length <= 10) {
+            return res.status(200).json({ message: "Sorted data", events: result.rows });
         }
         else {
             return res.status(200).json({ message: "Bad request" });
