@@ -141,7 +141,7 @@ const updateUser = asyncHandler(async (req, res) => {
         UPDATE users
         SET ${settingData}
         WHERE id=${req.body.id}
-        RETURNING "id", "email", "firstName", "lastName", "role";
+        RETURNING "id", "email", "firstName", "lastName", "role", "savedEvents";
     `;
 
     const result = await client.query(query);

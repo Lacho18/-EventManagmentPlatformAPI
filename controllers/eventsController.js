@@ -9,6 +9,7 @@ const getEvents = asyncHandler(async (req, res) => {
         const keys = Object.keys(data.conditions);
         const values = Object.values(data.conditions);
 
+        //The case when home page is loaded in order to get the highest and lowest price
         if (data.conditions.minAndMaxPrice) {
             const query = `
                 SELECT MIN(price) AS "lowestPrice", MAX(price) AS "highestPrice" FROM "upcomingEvents"
@@ -23,7 +24,6 @@ const getEvents = asyncHandler(async (req, res) => {
             }
         }
 
-        //const result = await getRequestsHandler('upcomingEvents', keys, values);
         const result = await getRequestsHandler('upcomingEvents', keys, values, data.join && data.join, "*", data.query && data.query);
 
         if (result.rows.length === 1) {
