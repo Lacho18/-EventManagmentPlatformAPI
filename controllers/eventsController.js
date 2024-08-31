@@ -38,7 +38,7 @@ const getEvents = asyncHandler(async (req, res) => {
     }
     //In case there aren't any specific request for the data
     else {
-        const query = `SELECT * FROM "upcomingEvents"
+        const query = `SELECT * FROM "upcomingEvents"    
                     ORDER BY event_date
                     OFFSET 0
                     LIMIT 10`;
