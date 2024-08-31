@@ -45,10 +45,11 @@ async function getRequestsHandler(table, fields, values, join = undefined, colum
         query = `
         SELECT ${specColumns} FROM "${table}" ${conditions !== "" ? `WHERE ${conditions}` : ""} ${conditions === "" ? queryParam : ""}
         `;
+        console.log(query);
     }
 
     //Making the request
-    const result = await client.query(query, values)
+    const result = await client.query(query, values);
 
     return result;
 }
