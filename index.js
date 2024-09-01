@@ -10,8 +10,6 @@ app.use(cors());
 
 app.use(bodyParser.json());
 
-//client.connect();
-
 app.use('/user', require('./routes/UserRoute'));
 app.use('/events', require('./routes/EventRoute'));
 app.use('/saveEvent', require('./routes/SaveEvent.js'));
