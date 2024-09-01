@@ -12,10 +12,6 @@ app.use(bodyParser.json());
 
 //client.connect();
 
-app.get('/test', (req, res) => {
-    console.log("It worked :O.");
-});
-
 app.use('/user', require('./routes/UserRoute'));
 app.use('/events', require('./routes/EventRoute'));
 app.use('/saveEvent', require('./routes/SaveEvent.js'));
