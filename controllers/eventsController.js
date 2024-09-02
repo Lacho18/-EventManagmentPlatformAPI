@@ -2,74 +2,79 @@ const asyncHandler = require('express-async-handler');
 const client = require('../connection');
 const { getRequestsHandler, getRequestsHandlerWithJoin } = require('../functions/getRequestHandler');
 
-/*
-    1. Prenapishi getEvents funciqta!
-*/
-
 //Function that get events by request
-const getEvents = asyncHandler(async (req, res) => {
-    //In case there is specific request
-    if (req.query.data) {
-        const data = JSON.parse(req.query.data);
-        console.log(data);
-        //In case the request is not for changing page on the 'EventsView'
-        if (!data.paging) {
-            const keys = Object.keys(data.conditions);
-            const values = Object.values(data.conditions);
+const getEvents2 = asyncHandler(async (req, res) => {
+    console.log(req.query.data);
+    const data = JSON.parse(req.query.data);
 
-            //The case when home page is loaded in order to get the highest and lowest price
-            if (data.conditions.minAndMaxPrice) {
-                const query = `
+
+    //On loading of the side getting the event with max price, min price and total count of events, used for filters and calculating the number of pages
+    if (data.conditions) {
+        if (data.conditions.minAndMaxPrice) {
+            const query = `
                 SELECT MIN(price) AS "lowestPrice", MAX(price) AS "highestPrice", COUNT(*) AS "totalEvents" FROM "upcomingEvents"
             `;
-                const result = await client.query(query);
-
-                if (result.rowCount === 1) {
-                    return res.status(200).json({ message: "Data of min and max prices!", data: result.rows[0] });
-                }
-                else {
-                    return res.status(400).json({ message: "Bad request!" });
-                }
-            }
-
-            console.log(data.query);
-            const result = await getRequestsHandler('upcomingEvents', keys, values, data.join && data.join, "*", data.query && data.query);
-
-            if (result.rows.length === 1) {
-                return res.status(200).json({ message: "Successful request", events: result.rows[0] });
-            }
-            else if (result.rows.length > 1 && result.rows.length <= 10) {
-                return res.status(200).json({ message: "Sorted data", events: result.rows });
-            }
-            else {
-                return res.status(200).json({ message: "Bad request" });
-            }
-        }
-        //In case the request is for changing the page on 'EventsView'
-        //This code is called only when page has changed
-        else {
-            const query = `SELECT * FROM "upcomingEvents"    
-                    ORDER BY ${data.orderBy}
-                    OFFSET ${(data.currentPage - 1) * data.elementsLimit}
-                    LIMIT ${data.elementsLimit}`;
-
             const result = await client.query(query);
 
-            return res.status(200).json({ message: "Successful request", events: result.rows });
+            if (result.rowCount === 1) {
+                return res.status(200).json({ message: "Data of min and max prices!", data: result.rows[0] });
+            }
+            else {
+                return res.status(400).json({ message: "Bad request!" });
+            }
         }
     }
-    //In case there aren't any specific request for the data
-    else {
-        const query = `SELECT * FROM "upcomingEvents"    
-                    ORDER BY event_date
-                    OFFSET 0
-                    LIMIT 10`;
 
-        const result = await client.query(query);
-
-        return res.status(200).json({ message: "Successful request", events: result.rows });
+    //Describes the conditions if given
+    let conditions;
+    if (data.conditions) {
+        let conditionsKeys = Object.keys(data.conditions);
+        conditions = conditionsKeys.map(key => {
+            const value = data.conditions[key];
+            return Array.isArray(value)
+                ? `"${key}" IN (${value.join(', ')})`
+                : `"${key}" = '${value}'`;
+        }).join(' AND ');
     }
-});
+
+    //Sets the limit of returned objects if given
+    let limit;
+    if (data.limit) {
+        limit = data.limit;
+    }
+
+    //Sets the number of skipped results if given
+    let offset;
+    if (data.currentPage) {
+        offset = (data.currentPage - 1) * data.limit;
+        console.log(offset && "OFFSET " + offset);
+    }
+
+    //Sets the order type of the objects if given
+    let orderBy;
+    if (data.orderBy) {
+        orderBy = data.orderBy;
+    }
+
+    let query = `
+        SELECT * FROM "upcomingEvents"
+        ${conditions ? "WHERE " + conditions : ""}
+        ${orderBy ? "ORDER BY " + orderBy : ""}
+        ${offset ? "OFFSET " + offset : ""}
+        ${limit ? "LIMIT " + limit : ""}
+    `;
+
+    console.log(query);
+
+    const result = await client.query(query);
+
+    if (result.rowCount > 0) {
+        return res.status(200).json({ message: "Successful request", data: result.rows });
+    }
+    else {
+        return res.status(400).json({ message: "Bad request!" });
+    }
+})
 
 //Function that inserts event
 const postEvent = asyncHandler((req, res) => {
@@ -86,4 +91,4 @@ const deleteEvent = asyncHandler((req, res) => {
 
 });
 
-module.exports = { getEvents, postEvent, updateEvent, deleteEvent };
+module.exports = { getEvents2, postEvent, updateEvent, deleteEvent };
