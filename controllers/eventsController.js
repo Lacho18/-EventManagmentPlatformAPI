@@ -4,11 +4,9 @@ const { getRequestsHandler, getRequestsHandlerWithJoin } = require('../functions
 
 //Function that get events by request
 const getEvents2 = asyncHandler(async (req, res) => {
-    console.log(req.query.data);
     const data = JSON.parse(req.query.data);
 
-
-    //On loading of the side getting the event with max price, min price and total count of events, used for filters and calculating the number of pages
+    //On loading on the side getting the event with max price, min price and total count of events, used for filters and calculating the number of pages
     if (data.conditions) {
         if (data.conditions.minAndMaxPrice) {
             const query = `
@@ -25,6 +23,16 @@ const getEvents2 = asyncHandler(async (req, res) => {
         }
     }
 
+    //If there is join requests
+    let newField;
+    if (data.join) {
+        //Concatenating all required fields from the other table in field named [joiningTable]_data
+        newField = data.join.fieldsToGet.map((field) => `|| "${data.join.joiningWith}"."${field}" ||`).join(" ' ' ");
+
+        //removing the first and last three letters from 'newField' variable
+        newField = newField.slice(3, -3);
+    }
+
     //Describes the conditions if given
     let conditions;
     if (data.conditions) {
@@ -32,8 +40,8 @@ const getEvents2 = asyncHandler(async (req, res) => {
         conditions = conditionsKeys.map(key => {
             const value = data.conditions[key];
             return Array.isArray(value)
-                ? `"${key}" IN (${value.join(', ')})`
-                : `"${key}" = '${value}'`;
+                ? `"upcomingEvents"."${key}" IN (${value.join(', ')})`
+                : `"upcomingEvents"."${key}" = '${value}'`;
         }).join(' AND ');
     }
 
@@ -57,7 +65,10 @@ const getEvents2 = asyncHandler(async (req, res) => {
     }
 
     let query = `
-        SELECT * FROM "upcomingEvents"
+        SELECT "upcomingEvents".*, 
+        ${newField ? `(${newField}) AS ${data.join.joiningWith}_data` : ""}
+        FROM "upcomingEvents"
+        ${newField ? `JOIN "${data.join.joiningWith}" ON "upcomingEvents"."organizer_ID" = "${data.join.joiningWith}".id` : ""}
         ${conditions ? "WHERE " + conditions : ""}
         ${orderBy ? "ORDER BY " + orderBy : ""}
         ${offset ? "OFFSET " + offset : ""}

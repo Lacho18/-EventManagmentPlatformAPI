@@ -1,13 +1,25 @@
 const asyncHandler = require('express-async-handler');
 const client = require('../connection');
+const fs = require('fs');
+const path = require('path');
 const { getRequestsHandler } = require("../functions/getRequestHandler");
 const { adminAccountCheck } = require("../functions/adminAccountCheck");
 
 const getUser = asyncHandler(async (req, res) => {
     const { email, password } = JSON.parse(req.query.data);
     console.log(email + "    " + password);
-    let result = await getRequestsHandler("users", ['email', 'password'], [email, password], undefined, ['id', 'email', 'firstName', 'lastName', 'role', 'savedEvents']);
+    let result = await getRequestsHandler("users", ['email', 'password'], [email, password], undefined, ['id', 'email', 'firstName', 'lastName', 'role', 'savedEvents', 'userImage']);
     console.log(result.rows[0]);
+
+    /*if (result.rows[0].userImage) {
+        console.log("GLEDAY TYKA VE EIIIIIII");
+        console.log(result.rows[0].userImage);
+        const filePath = path.join(__dirname, result.rows[0].userImage);
+
+        const file = fs.readFileSync(result.rows[0].userImage, 'utf-8');
+
+        result.rows[0]["userImage"] = file;
+    }*/
 
     if (result.rows.length === 1) {
         res.status(200).json({ message: "Successfully logged in!", user: result.rows[0] });
@@ -81,8 +93,6 @@ const createUser = asyncHandler(async (req, res) => {
     else {
         role = data.role;
     }
-
-    console.log(role);
 
     //After successful data, request to insert the user
     try {
