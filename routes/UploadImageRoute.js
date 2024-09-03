@@ -49,6 +49,33 @@ router.post('/', upload.single('file'), async (req, res) => {
         console.error('Error updating user:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
-});
+})
+    .put('/', async (req, res) => {
+        console.log("SEGA PUK KAKVO");
+        console.log(req.body);
+        const data = req.body;
+
+        if (data.isClosed) {
+            const query = `
+                UPDATE users
+                SET "userImage" = $1
+                WHERE id = $2
+                RETURNING "id", "email", "firstName", "lastName", "role", "savedEvents", "userImage";
+            `;
+
+            const values = ['empty', data.userId];
+
+            const result = await client.query(query, values);
+
+            console.log(result.rows);
+
+            if (result.rowCount === 1) {
+                return res.status(200).json({ message: "Updated!", data: result.rows[0] });
+            }
+            else {
+                return res.status(400).json({ message: "Bad request!" });
+            }
+        }
+    });
 
 module.exports = router;

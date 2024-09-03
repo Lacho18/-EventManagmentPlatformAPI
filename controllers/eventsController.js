@@ -27,10 +27,11 @@ const getEvents2 = asyncHandler(async (req, res) => {
     let newField;
     if (data.join) {
         //Concatenating all required fields from the other table in field named [joiningTable]_data
-        newField = data.join.fieldsToGet.map((field) => `|| "${data.join.joiningWith}"."${field}" ||`).join(" ' ' ");
+        //newField = data.join.fieldsToGet.map((field) => `|| "${data.join.joiningWith}"."${field}" ||`).join(" ' ' ");
+        newField = data.join.fieldsToGet.map((field) => `"${data.join.joiningWith}"."${field}" AS "${field}"`).join(", ");
 
         //removing the first and last three letters from 'newField' variable
-        newField = newField.slice(3, -3);
+        //newField = newField.slice(3, -3);
     }
 
     //Describes the conditions if given
@@ -64,7 +65,7 @@ const getEvents2 = asyncHandler(async (req, res) => {
         orderBy = data.orderBy;
     }
 
-    let query = `
+    /*let query = `
         SELECT "upcomingEvents".*, 
         ${newField ? `(${newField}) AS ${data.join.joiningWith}_data` : ""}
         FROM "upcomingEvents"
@@ -73,7 +74,18 @@ const getEvents2 = asyncHandler(async (req, res) => {
         ${orderBy ? "ORDER BY " + orderBy : ""}
         ${offset ? "OFFSET " + offset : ""}
         ${limit ? "LIMIT " + limit : ""}
-    `;
+    `;*/
+
+    let query = `
+        SELECT "upcomingEvents".*, 
+        ${newField ? "" + newField : ""}
+        FROM "upcomingEvents"
+        ${newField ? `JOIN "${data.join.joiningWith}" ON "upcomingEvents"."organizer_ID" = "${data.join.joiningWith}".id` : ""}
+        ${conditions ? "WHERE " + conditions : ""}
+        ${orderBy ? "ORDER BY " + orderBy : ""}
+        ${offset ? "OFFSET " + offset : ""}
+        ${limit ? "LIMIT " + limit : ""}
+    `
 
     console.log(query);
 
