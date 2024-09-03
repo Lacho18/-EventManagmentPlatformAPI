@@ -78,7 +78,7 @@ const getEvents2 = asyncHandler(async (req, res) => {
 
     let query = `
         SELECT "upcomingEvents".*, 
-        ${newField ? "" + newField : ""}
+        ${newField ? "" + newField : ""}    
         FROM "upcomingEvents"
         ${newField ? `JOIN "${data.join.joiningWith}" ON "upcomingEvents"."organizer_ID" = "${data.join.joiningWith}".id` : ""}
         ${conditions ? "WHERE " + conditions : ""}
