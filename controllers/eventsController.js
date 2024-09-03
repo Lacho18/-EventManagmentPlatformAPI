@@ -101,7 +101,7 @@ const getEvents2 = asyncHandler(async (req, res) => {
 
 //Function that inserts event
 const postEvent = asyncHandler((req, res) => {
-
+    console.log(req.body);
 });
 
 //Function that update a specific event from its organizer
