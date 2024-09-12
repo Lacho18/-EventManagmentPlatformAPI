@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const userFunctions = require('../controllers/userController');
-//const userFunctions = require('../controlers/UserController.js');
 
 router.route('/*')
     .get(userFunctions.getUser)
