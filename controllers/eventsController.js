@@ -168,7 +168,7 @@ const updateEvent = asyncHandler((req, res) => {
 
 //Function that either deletes the event from 'upcomingEvents' table and send it to passedEvents or just delete it in case the organizer decided to remove it
 const deleteEvent = asyncHandler((req, res) => {
-
+    console.log("EHOOOOOOOOOOOOOOOOOO");
 });
 
 module.exports = { getEvents2, postEvent, updateEvent, deleteEvent };
