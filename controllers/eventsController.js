@@ -65,17 +65,6 @@ const getEvents2 = asyncHandler(async (req, res) => {
         orderBy = data.orderBy;
     }
 
-    /*let query = `
-        SELECT "upcomingEvents".*, 
-        ${newField ? `(${newField}) AS ${data.join.joiningWith}_data` : ""}
-        FROM "upcomingEvents"
-        ${newField ? `JOIN "${data.join.joiningWith}" ON "upcomingEvents"."organizer_ID" = "${data.join.joiningWith}".id` : ""}
-        ${conditions ? "WHERE " + conditions : ""}
-        ${orderBy ? "ORDER BY " + orderBy : ""}
-        ${offset ? "OFFSET " + offset : ""}
-        ${limit ? "LIMIT " + limit : ""}
-    `;*/
-
     let query = `
         SELECT "upcomingEvents".*, 
         ${newField ? "" + newField : ""}    
@@ -100,8 +89,76 @@ const getEvents2 = asyncHandler(async (req, res) => {
 })
 
 //Function that inserts event
-const postEvent = asyncHandler((req, res) => {
-    console.log(req.body);
+const postEvent = asyncHandler(async (req, res) => {
+    const data = req.body;
+    const keys = Object.keys(data);
+
+    //Checks for empty fields
+    let emptyFields = false;
+    keys.forEach(key => {
+        const value = data[key];
+
+        console.log(value);
+
+        if (value === null || value === 0 || value === '' || value === undefined) {
+            emptyFields = true;
+        }
+
+        if (typeof value === 'object' && !Array.isArray(value) && Object.keys.length === 0) {
+            emptyFields = true;
+        }
+
+        if (Array.isArray(value) && value.length === 0) {
+            emptyFields = true;
+        }
+    });
+
+    if (emptyFields) {
+        return res.status(400).json({ message: "All fields are required! Please field all of them!" });
+    }
+
+    //Sets the date to date format
+    data.event_date = new Date(data.event_date);
+
+    //Checks if the given date is correct
+    if (isNaN(data.event_date.getTime())) {
+        return res.status(400).json({ message: "Invalid date was given! Please give a valid one!" });
+    }
+
+    //Checks if the given date is in the feature
+    let today = new Date();
+    if (data.event_date < today) {
+        return res.status(400).json({ message: "The provided date has passed. The event should be in future days and not passed!" });
+    }
+
+    //Checks if the organizer id is valid user
+    let validUser = await client.query("SELECT id FROM users WHERE id=" + data.organizer_ID);
+    if (validUser.rowCount !== 1) {
+        return res.status(400).json({ message: "The provided organizer data is invalid! Please re log in or create organizer account!" });
+    }
+
+    //Checks if the given id is on organizer
+    if (validUser.role === "participant") {
+        return res.status(400).json({ message: "You must be an organizer to create event! Please update your account or create new as organizer!" });
+    }
+
+    //Formats the location field for a way to be inserted
+    const location = [];
+    Object.keys(data.location).forEach(key => location.push(data.location[key]));
+    data.location = location;
+
+    const query = `
+        INSERT INTO "upcomingEvents" (name, description, location, duration, price, "organizer_ID", image, event_date, places)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING id
+    `;
+
+    const values = [data.name, data.description, data.location, data.duration, data.price, data.organizer_ID, data.image, data.event_date, data.places];
+
+    const result = await client.query(query, values);
+
+    return res.status(200).json({ message: "Successfully posted event!", id: result.rows[0].id });
+
 });
 
 //Function that update a specific event from its organizer
