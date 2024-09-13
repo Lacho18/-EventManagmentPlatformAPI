@@ -6,6 +6,10 @@ const { getRequestsHandler, getRequestsHandlerWithJoin } = require('../functions
 const getEvents2 = asyncHandler(async (req, res) => {
     const data = JSON.parse(req.query.data);
 
+    if (data.tableName === undefined) {
+        data.tableName = "upcomingEvents";
+    }
+
     //On loading on the side getting the event with max price, min price and total count of events, used for filters and calculating the number of pages
     if (data.conditions) {
         if (data.conditions.minAndMaxPrice) {
@@ -41,8 +45,8 @@ const getEvents2 = asyncHandler(async (req, res) => {
         conditions = conditionsKeys.map(key => {
             const value = data.conditions[key];
             return Array.isArray(value)
-                ? `"upcomingEvents"."${key}" IN (${value.join(', ')})`
-                : `"upcomingEvents"."${key}" = '${value}'`;
+                ? `"${data.tableName}"."${key}" IN (${value.join(', ')})`
+                : `"${data.tableName}"."${key}" = '${value}'`;
         }).join(' AND ');
     }
 
@@ -66,17 +70,17 @@ const getEvents2 = asyncHandler(async (req, res) => {
     }
 
     let query = `
-        SELECT "upcomingEvents".*, 
+        SELECT "${data.tableName}".*, 
         ${newField ? "" + newField : ""}    
-        FROM "upcomingEvents"
-        ${newField ? `JOIN "${data.join.joiningWith}" ON "upcomingEvents"."organizer_ID" = "${data.join.joiningWith}".id` : ""}
+        FROM "${data.tableName}"
+        ${newField ? `JOIN "${data.join.joiningWith}" ON "${data.tableName}"."organizer_ID" = "${data.join.joiningWith}".id` : ""}
         ${conditions ? "WHERE " + conditions : ""}
         ${orderBy ? "ORDER BY " + orderBy : ""}
         ${offset ? "OFFSET " + offset : ""}
         ${limit ? "LIMIT " + limit : ""}
     `
 
-    //console.log(query);
+    console.log(query);
 
     const result = await client.query(query);
 

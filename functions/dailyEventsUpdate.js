@@ -11,7 +11,8 @@ const dailyUpdate = async () => {
 
     //Stores inside array every id of passed event
     allUpcomingEvents.rows.forEach(event => {
-        if (event.event_date < currentDate) {
+        const eventDate = new Date(event.event_date);
+        if (eventDate < currentDate) {
             passedEvents.push(event.id);
         }
     });
@@ -24,12 +25,12 @@ const dailyUpdate = async () => {
 
     //Query for deleting all passed events
     const deleteQuery = `
-        DELETE FROM "upcomingEvents"
-        WHERE id IN(${passedEvents.join(', ')})
-        RETURNING *
-    `;
+            DELETE FROM "upcomingEvents"
+            WHERE id = ANY($1::int[])
+            RETURNING *
+        `;
 
-    const deletedEvents = await client.query(deleteQuery);
+    const deletedEvents = await client.query(deleteQuery, [passedEvents]);
 
     //No events were deleted
     if (deletedEvents.rowCount === 0) {
