@@ -76,7 +76,7 @@ const getEvents2 = asyncHandler(async (req, res) => {
         ${limit ? "LIMIT " + limit : ""}
     `
 
-    console.log(query);
+    //console.log(query);
 
     const result = await client.query(query);
 
@@ -92,6 +92,9 @@ const getEvents2 = asyncHandler(async (req, res) => {
 const postEvent = asyncHandler(async (req, res) => {
     const data = req.body;
     const keys = Object.keys(data);
+
+    console.log("INSERTING DATA FOR EVENT");
+    console.log(data);
 
     //Checks for empty fields
     let emptyFields = false;
@@ -148,12 +151,12 @@ const postEvent = asyncHandler(async (req, res) => {
     data.location = location;
 
     const query = `
-        INSERT INTO "upcomingEvents" (name, description, location, duration, price, "organizer_ID", image, event_date, places)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        INSERT INTO "upcomingEvents" (name, description, location, duration, price, "organizer_ID", image, event_date, places, participants)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING id
     `;
 
-    const values = [data.name, data.description, data.location, data.duration, data.price, data.organizer_ID, data.image, data.event_date, data.places];
+    const values = [data.name, data.description, data.location, data.duration, data.price, data.organizer_ID, data.image, data.event_date, data.places, []];
 
     const result = await client.query(query, values);
 
@@ -167,8 +170,57 @@ const updateEvent = asyncHandler((req, res) => {
 });
 
 //Function that either deletes the event from 'upcomingEvents' table and send it to passedEvents or just delete it in case the organizer decided to remove it
-const deleteEvent = asyncHandler((req, res) => {
-    console.log("EHOOOOOOOOOOOOOOOOOO");
+const deleteEvent = asyncHandler(async (req, res) => {
+    /*
+        Tasks on the function
+        1. Removes the event from the database
+        2. By event field participants, finds all users which have bought tickets, returning their money and removing the events from willParticipate array field on the user
+    */
+    const { eventData } = JSON.parse(req.query.data);
+
+    let usersWithTickets = eventData.participants;
+
+    let errorMessage = {};
+
+    //Updating all users that have purchased tickets for the deleted event
+    const updatedUsers = await Promise.all(usersWithTickets.map(async (userId) => {
+        const updateUserQuery = `
+            UPDATE "users"
+            SET "moneySpent" = "moneySpent" - ${eventData.price}, "willParticipate" = array_remove("willParticipate", ${eventData.id}::text)
+            WHERE id=${userId}
+            RETURNING *
+        `;
+
+        const user = await client.query(updateUserQuery);
+
+        if (user.rowCount > 1) {
+            errorMessage = { message: "Something went wrong while updating users data. Please try again!", status: 400 };
+            return;
+        }
+        else {
+            errorMessage = { message: `User ${user.rows[0].firstName} ${user.rows[0].lastName}, was updated successfully!`, status: 200 };
+        }
+
+        console.log(errorMessage.message);
+    }))
+
+    if (errorMessage?.status === 400) {
+        return res.status(errorMessage.status).json({ message: errorMessage.message });
+    }
+
+    //Deleting the event
+    const deleteQuery = `
+        DELETE FROM "upcomingEvents"
+        WHERE id=${eventData.id}
+    `;
+
+    const result = await client.query(deleteQuery);
+
+    if (result.rowCount === 0) {
+        return res.status(400).json({ message: "Event was not deleted. Please try again!" });
+    }
+
+    return res.status(200).json({ message: "Event deleted successfully!" });
 });
 
 module.exports = { getEvents2, postEvent, updateEvent, deleteEvent };

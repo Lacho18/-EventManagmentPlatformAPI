@@ -20,7 +20,7 @@ const buyTicket = asyncHandler(async (req, res) => {
     const userQuery = `
         UPDATE "users"
         SET "moneySpent" = "moneySpent" + ${event.rows[0].price * ticketsAmount}, "willParticipate" = 
-                CASE WHEN array_positions("willParticipate", ${eventId}::text) IS NULL THEN array_append("willParticipate", ${eventId}::text)
+                CASE WHEN array_position("willParticipate", ${eventId}::text) IS NULL THEN array_append("willParticipate", ${eventId}::text)
                 ELSE "willParticipate"
         END
         WHERE id = ${userId}
@@ -36,12 +36,17 @@ const buyTicket = asyncHandler(async (req, res) => {
     //Update event 
     const eventQuery = `
         UPDATE "upcomingEvents"
-        SET "places"="places"-${ticketsAmount}
+        SET "places"="places"-${ticketsAmount}, "participants" = 
+                CASE WHEN array_position("participants", ${userId}::text) IS NULL THEN array_append("participants", ${userId}::text)
+                ELSE "participants"
+        END
         WHERE id=${eventId}
         RETURNING *
     `;
 
     const updatedEvent = await client.query(eventQuery);
+
+    console.log(updatedEvent.rows[0]);
 
     if (updatedEvent.rowCount === 0) {
         return res.status(400).json({ message: "Error while updating event data. Please try again!" });
