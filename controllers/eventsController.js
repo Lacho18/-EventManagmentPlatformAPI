@@ -10,6 +10,8 @@ const getEvents2 = asyncHandler(async (req, res) => {
         data.tableName = "upcomingEvents";
     }
 
+    console.log("Of kakvo sega be");
+
     //On loading on the side getting the event with max price, min price and total count of events, used for filters and calculating the number of pages
     if (data.conditions) {
         if (data.conditions.minAndMaxPrice) {
@@ -69,8 +71,10 @@ const getEvents2 = asyncHandler(async (req, res) => {
         orderBy = data.orderBy;
     }
 
-    let query = `
-        SELECT "${data.tableName}".*, 
+
+    //On the select line, the condition is to remove the ',' if there is conditions and it includes "IN"
+    let query = `                   
+        SELECT "${data.tableName}".*${newField ? "," : ""} 
         ${newField ? "" + newField : ""}    
         FROM "${data.tableName}"
         ${newField ? `JOIN "${data.join.joiningWith}" ON "${data.tableName}"."organizer_ID" = "${data.join.joiningWith}".id` : ""}
