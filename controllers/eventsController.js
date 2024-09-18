@@ -173,8 +173,51 @@ const postEvent = asyncHandler(async (req, res) => {
 });
 
 //Function that update a specific event from its organizer
-const updateEvent = asyncHandler((req, res) => {
+const updateEvent = asyncHandler(async (req, res) => {
+    const data = req.body;
 
+    data.location = Object.keys(data.location).map((key) => data.location[key]);
+    console.log(data.location);
+
+    const updateQuery = `
+    UPDATE "upcomingEvents"
+    SET
+        name = $1,
+        description = $2,
+        location = $3,
+        duration = $4,
+        price = $5,
+        "organizer_ID" = $6,
+        image = $7,
+        event_date = $8,
+        places = $9,
+        participants = $10
+    WHERE id = $11
+    RETURNING id
+`;
+
+    const values = [
+        data.name,
+        data.description,
+        data.location,
+        data.duration,
+        data.price,
+        data.organizer_ID,
+        data.image,
+        data.event_date,
+        data.places,
+        data.participants || [],
+        data.id
+    ];
+
+
+    const result = await client.query(updateQuery, values);
+
+    if (result.rowCount === 0) {
+        return res.status(404).json({ message: "event not found!" });
+    }
+
+    return res.status(200).json({ message: "Event was updated successfully!", eventId: result.rows[0].id });
 });
 
 //Function that either deletes the event from 'upcomingEvents' table and send it to passedEvents or just delete it in case the organizer decided to remove it
