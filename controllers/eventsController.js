@@ -6,11 +6,12 @@ const { getRequestsHandler, getRequestsHandlerWithJoin } = require('../functions
 const getEvents2 = asyncHandler(async (req, res) => {
     const data = JSON.parse(req.query.data);
 
+    console.log("TYKAAAAAAAAAAAAAAAAAA");
+    console.log(data);
+
     if (data.tableName === undefined) {
         data.tableName = "upcomingEvents";
     }
-
-    console.log("Of kakvo sega be");
 
     //On loading on the side getting the event with max price, min price and total count of events, used for filters and calculating the number of pages
     if (data.conditions) {
