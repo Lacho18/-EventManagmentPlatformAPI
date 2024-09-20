@@ -29,6 +29,7 @@ app.use('/events', require('./routes/EventRoute'));
 app.use('/saveEvent', require('./routes/SaveEvent.js'));
 app.use('/uploadImage', require('./routes/UploadImageRoute.js'));
 app.use('/buyTicket', require('./routes/BuyTicket.js'));
+app.use('/allUsers', require('./routes/AllUsers.js'));
 
 app.listen(PORT, () => {
     console.log("Server running on port " + PORT);
