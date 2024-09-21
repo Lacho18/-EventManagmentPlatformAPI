@@ -163,6 +163,8 @@ const removeUser = asyncHandler(async (req, res) => {
 
     const result = await client.query(query);
 
+    console.log(query);
+
     if (result.rowCount === 1) {
         res.status(200).json({ message: "User: " + id + " has been deleted!" })
     }

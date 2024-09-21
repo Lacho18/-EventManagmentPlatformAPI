@@ -6,9 +6,6 @@ const { getRequestsHandler, getRequestsHandlerWithJoin } = require('../functions
 const getEvents2 = asyncHandler(async (req, res) => {
     const data = JSON.parse(req.query.data);
 
-    console.log("TYKAAAAAAAAAAAAAAAAAA");
-    console.log(data);
-
     if (data.tableName === undefined) {
         data.tableName = "upcomingEvents";
     }
@@ -234,30 +231,32 @@ const deleteEvent = asyncHandler(async (req, res) => {
 
     let errorMessage = {};
 
-    //Updating all users that have purchased tickets for the deleted event
-    const updatedUsers = await Promise.all(usersWithTickets.map(async (userId) => {
-        const updateUserQuery = `
-            UPDATE "users"
-            SET "moneySpent" = "moneySpent" - ${eventData.price}, "willParticipate" = array_remove("willParticipate", ${eventData.id}::text)
-            WHERE id=${userId}
-            RETURNING *
-        `;
+    //Updating all users that have purchased tickets for the deleted event\
+    if (usersWithTickets !== null) {
+        const updatedUsers = await Promise.all(usersWithTickets.map(async (userId) => {
+            const updateUserQuery = `
+                UPDATE "users"
+                SET "moneySpent" = "moneySpent" - ${eventData.price}, "willParticipate" = array_remove("willParticipate", ${eventData.id}::text)
+                WHERE id=${userId}
+                RETURNING *
+            `;
 
-        const user = await client.query(updateUserQuery);
+            const user = await client.query(updateUserQuery);
 
-        if (user.rowCount > 1) {
-            errorMessage = { message: "Something went wrong while updating users data. Please try again!", status: 400 };
-            return;
+            if (user.rowCount > 1) {
+                errorMessage = { message: "Something went wrong while updating users data. Please try again!", status: 400 };
+                return;
+            }
+            else {
+                errorMessage = { message: `User ${user.rows[0].firstName} ${user.rows[0].lastName}, was updated successfully!`, status: 200 };
+            }
+
+            console.log(errorMessage.message);
+        }))
+
+        if (errorMessage?.status === 400) {
+            return res.status(errorMessage.status).json({ message: errorMessage.message });
         }
-        else {
-            errorMessage = { message: `User ${user.rows[0].firstName} ${user.rows[0].lastName}, was updated successfully!`, status: 200 };
-        }
-
-        console.log(errorMessage.message);
-    }))
-
-    if (errorMessage?.status === 400) {
-        return res.status(errorMessage.status).json({ message: errorMessage.message });
     }
 
     //Deleting the event

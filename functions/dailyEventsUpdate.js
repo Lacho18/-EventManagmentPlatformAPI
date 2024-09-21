@@ -2,17 +2,22 @@ const client = require('../connection');
 
 const dailyUpdate = async () => {
     const currentDate = new Date();
-    const today = `${currentDate.getDay()}/${currentDate.getMonth()}/${currentDate.getFullYear()}`;
+    const currentDateStart = new Date(currentDate.setHours(0, 0, 0, 0));
+    const today = `${currentDate.getDate()}/${currentDate.getMonth() + 1}/${currentDate.getFullYear()}`;
 
     //Gets every event from upcomingEvents table
     const allUpcomingEvents = await client.query("SELECT * FROM \"upcomingEvents\"");
 
     const passedEvents = [];
 
+    if (allUpcomingEvents.rowCount === 0) {
+        return;
+    }
+
     //Stores inside array every id of passed event
     allUpcomingEvents.rows.forEach(event => {
         const eventDate = new Date(event.event_date);
-        if (eventDate < currentDate) {
+        if (eventDate < currentDateStart) {
             passedEvents.push(event.id);
         }
     });
@@ -39,7 +44,7 @@ const dailyUpdate = async () => {
     }
 
     //Inserts every deleted event in the passed events database
-    const insertOperations = await Promise.all(deleteQuery.rows.map(async (event) => {
+    const insertOperations = await Promise.all(deletedEvents.rows.map(async (event) => {
         const insertQuery = `
             INSERT INTO "passedEvents" (name, description, location, duration, price, "organizer_ID", image, event_date, places, participants)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
