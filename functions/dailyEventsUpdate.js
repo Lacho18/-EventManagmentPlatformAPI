@@ -22,6 +22,9 @@ const dailyUpdate = async () => {
         }
     });
 
+    console.log("Passed events!");
+    console.log(passedEvents);
+
     //No events are passed for the current day
     if (passedEvents.length === 0) {
         console.log("No changed events on date - " + today);
@@ -35,7 +38,13 @@ const dailyUpdate = async () => {
             RETURNING *
         `;
 
+    console.log("DELETE QUERY!")
+    console.log(deleteQuery);
+
     const deletedEvents = await client.query(deleteQuery, [passedEvents]);
+
+    console.log("Deleted events");
+    console.log(deletedEvents.rows);
 
     //No events were deleted
     if (deletedEvents.rowCount === 0) {
@@ -49,6 +58,11 @@ const dailyUpdate = async () => {
             INSERT INTO "passedEvents" (name, description, location, duration, price, "organizer_ID", image, event_date, places, participants)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         `;
+
+        console.log("           ");
+        console.log("Inserting event");
+        console.log(event)
+        console.log(insertQuery);
 
         const values = [
             event.name,
@@ -64,6 +78,8 @@ const dailyUpdate = async () => {
         ];
 
         const result = await client.query(insertQuery, values);
+        console.log(result.rowCount);
+        console.log("                   ");
 
         if (result.rowCount === 1) {
             return "Success";
@@ -75,7 +91,7 @@ const dailyUpdate = async () => {
 
     insertOperations.forEach(operation => console.log(operation));
 
-    console.log("Daily operation complete. Today dte - " + today);
+    console.log("Daily operation complete. Today date - " + today);
 }
 
 module.exports = dailyUpdate;
