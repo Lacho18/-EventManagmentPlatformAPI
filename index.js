@@ -28,6 +28,7 @@ app.use('/user', require('./routes/UserRoute'));
 app.use('/events', require('./routes/EventRoute'));
 app.use('/saveEvent', require('./routes/SaveEvent.js'));
 app.use('/chats', require('./routes/ChatsRoute.js'));
+app.use('/specUsers', require('./routes/ChatsData.js'));
 app.use('/uploadImage', require('./routes/UploadImageRoute.js'));
 app.use('/buyTicket', require('./routes/BuyTicket.js'));
 app.use('/allUsers', require('./routes/AllUsers.js'));
