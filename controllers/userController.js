@@ -8,7 +8,7 @@ const { adminAccountCheck } = require("../functions/adminAccountCheck");
 const getUser = asyncHandler(async (req, res) => {
     const { email, password } = JSON.parse(req.query.data);
     console.log(email + "    " + password);
-    let result = await getRequestsHandler("users", ['email', 'password'], [email, password], undefined, ['id', 'email', 'firstName', 'lastName', 'role', 'savedEvents', 'userImage']);
+    let result = await getRequestsHandler("users", ['email', 'password'], [email, password], undefined, ['id', 'email', 'firstName', 'lastName', 'role', 'savedEvents', 'userImage', 'chats', 'willParticipate']);
     console.log(result.rows[0]);
 
     if (result.rows.length === 1) {

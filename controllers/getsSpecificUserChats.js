@@ -6,7 +6,7 @@ const getSpecificUserChats = asyncHandler(async (req, res) => {
     const { userId } = JSON.parse(req.query.data);
 
     const query = `
-        SELECT "id", "firstName", "lastName", "userImage"
+        SELECT "id", "firstName", "lastName", "userImage", "role"
         FROM "users"
         WHERE id != ${userId} 
     `;

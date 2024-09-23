@@ -7,6 +7,7 @@ const getMessages = asyncHandler(async (req, res) => {
     const query = `
     SELECT 
         "chats".*,
+        "sender"."id" AS "senderID",
         "sender"."firstName" AS "senderFirstName", 
         "sender"."lastName" AS "senderLastName", 
         "sender"."userImage" AS "senderImage",
@@ -23,7 +24,13 @@ const getMessages = asyncHandler(async (req, res) => {
 
     const result = await client.query(query, value);
 
-    return res.status(200).json({ message: "Successful request!", messages: result.rows });
+    const receiverName = result.rows.find((singleResult) => singleResult.senderID === senderId);
+
+    return res.status(200).json({
+        message: "Successful request!", messages: result.rows,
+        receiverName: receiverName.receiverFirstName + " " + receiverName.receiverLastName,
+        receiverImage: receiverName.receiverImage
+    });
 });
 
 
