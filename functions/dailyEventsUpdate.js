@@ -92,6 +92,8 @@ const dailyUpdate = async () => {
     insertOperations.forEach(operation => console.log(operation));
 
     console.log("Daily operation complete. Today date - " + today);
+
+    return;
 }
 
 module.exports = dailyUpdate;
