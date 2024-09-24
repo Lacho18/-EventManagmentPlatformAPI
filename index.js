@@ -7,13 +7,42 @@ const cron = require('node-cron');
 const dailyUpdate = require('./functions/dailyEventsUpdate.js');
 const cors = require('cors');
 
-const PORT = 3000;
+//Set upping the socket.io server
+const http = require("http");
+const { Server } = require("socket.io");
+const socketHandler = require('./controllers/sockets.js');
 
-app.use(cors());
+const PORT = 4000;
+
+app.use(cors({
+    origin: ["http://localhost:3000"],
+}));
 
 app.use(bodyParser.json());
 
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "http://localhost:3000",  // Your React frontend origin
+    }
+});
+
+io.on('connection', (socket) => {
+    console.log('User connected:', socket.id);
+
+    socket.on('disconnect', () => {
+        console.log('User disconnected:', socket.id);
+    });
+});
+
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+app.get('/', (req, res) => {
+    return res.json({ message: "Some result" });
+});
+
+//Calls the function that handles the socket events
+//socketHandler(io);
 
 //Daily update of the events
 cron.schedule('0 0 * * *', async () => {
