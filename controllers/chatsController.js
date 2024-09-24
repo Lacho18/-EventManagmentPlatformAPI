@@ -2,7 +2,7 @@ const asyncHandler = require('express-async-handler');
 const client = require('../connection');
 
 const getMessages = asyncHandler(async (req, res) => {
-    const { senderId } = JSON.parse(req.query.data);
+    const { senderId, receiverId } = JSON.parse(req.query.data);
 
     const query = `
     SELECT 
@@ -17,12 +17,21 @@ const getMessages = asyncHandler(async (req, res) => {
     FROM "chats"
     JOIN "users" AS "sender" ON "chats"."senderId" = "sender"."id"
     JOIN "users" AS "receiver" ON "chats"."receiverId" = "receiver"."id"
-    WHERE "chats"."senderId" = $1 OR "chats"."receiverId" = $1
+    WHERE ("chats"."senderId" = $1 OR "chats"."receiverId" = $1) AND ("chats"."senderId" = $2 OR "chats"."receiverId" = $2)
 `;
 
-    const value = [senderId];
+    const value = [senderId, receiverId];
 
     const result = await client.query(query, value);
+
+    if (result.rowCount === 0) {
+        //Gets the receiver of messages user in order to visualize his image and name even without chats
+        const user = await client.query(`SELECT "firstName", "lastName", "userImage" FROM "users" WHERE id=${receiverId}`);
+        return res.status(400).json({
+            message: "You have no messages. Send Hello.", receiverName: user.rows[0].firstName + " " + user.rows[0].lastName,
+            receiverImage: user.rows[0].userImage
+        });
+    }
 
     const receiverName = result.rows.find((singleResult) => singleResult.senderID === senderId);
 
