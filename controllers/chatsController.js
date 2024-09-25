@@ -60,11 +60,11 @@ const postMessage = asyncHandler(async (req, res) => {
         RETURNING *
     `;
 
-    /*const updateUsers = await client.query(updateUsersQuery);
+    const updateUsers = await client.query(updateUsersQuery);
 
     if (updateUsers.rowCount === 0) {
         return res.status(400).json({ message: "Invalid message data send. Please try again!" });
-    }*/
+    }
 
     //Post the message in the chats table
     const query = `
@@ -74,14 +74,14 @@ const postMessage = asyncHandler(async (req, res) => {
 
     const values = [data.senderId, data.receiverId, data.message, new Date()];
 
-    /*const result = await client.query(query, values);
+    const result = await client.query(query, values);
 
     if (result.rowCount > 0) {
         return res.status(200).json({ message: "Message posted!" });
     }
     else {
         return res.status(400).json({ message: "Error while posting the message appeared." });
-    }*/
+    }
 });
 
 module.exports = { getMessages, postMessage };
