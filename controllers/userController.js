@@ -7,9 +7,7 @@ const { adminAccountCheck } = require("../functions/adminAccountCheck");
 
 const getUser = asyncHandler(async (req, res) => {
     const { email, password } = JSON.parse(req.query.data);
-    console.log(email + "    " + password);
     let result = await getRequestsHandler("users", ['email', 'password'], [email, password], undefined, ['id', 'email', 'firstName', 'lastName', 'role', 'savedEvents', 'userImage', 'chats', 'willParticipate']);
-    console.log(result.rows[0]);
 
     if (result.rows.length === 1) {
         res.status(200).json({ message: "Successfully logged in!", user: result.rows[0] });
@@ -54,7 +52,7 @@ const createUser = asyncHandler(async (req, res) => {
 
     //Checks if the password contains only numbers
     if (/^[0-9]+$/.test(data.password)) {
-        return res.status(400).json({ message: "Password should not include only symbols!" });
+        return res.status(400).json({ message: "Password should not include only numbers!" });
     }
 
     let currentTime = new Date();
@@ -82,6 +80,9 @@ const createUser = asyncHandler(async (req, res) => {
     }
     else {
         role = data.role;
+        if (!role) {
+            role = "participant";
+        }
     }
 
     //After successful data, request to insert the user
@@ -99,7 +100,7 @@ const createUser = asyncHandler(async (req, res) => {
             data.lastName,
             data.gender,
             data.dateOfBirth,
-            0,
+            [],
             role,
             0,
             [],
@@ -163,9 +164,8 @@ const removeUser = asyncHandler(async (req, res) => {
     const { id } = JSON.parse(req.query.data);
 
     const query = `
-        DELETE FROM users
+        SELECT * FROM users
         WHERE id=${id}
-        RETURNING *
     `;
 
     const result = await client.query(query);
@@ -176,33 +176,58 @@ const removeUser = asyncHandler(async (req, res) => {
 
     if (result.rows[0].role === "organizer") {
         //Deleting every event that is organized by the user
-        const allOrganizedEvents = await client.query("SELECT * FROM \"upcomingEvents\" WHERE \"organizer_ID\"=" + result.rows[0].id);
+        const allOrganizedEvents = await client.query(`SELECT * FROM "upcomingEvents" WHERE "upcomingEvents"."organizer_ID" = ${result.rows[0].id}`);
+
+        console.log("Deleted organizer events:");
+        console.log(allOrganizedEvents.rows);
 
         //If the deleted user has organized events
         if (allOrganizedEvents.rowCount > 0) {
-            await Promise.all(allOrganizedEvents.rows.forEach(async (deletedEvent) => {
+            const updatedUsersAfterEventsDelete = await Promise.all(allOrganizedEvents.rows.map(async (deletedEvent) => {
                 const participants = deletedEvent.participants;
 
                 //If the events thats are about to be deleted has users that will participate on
                 if (participants.length > 0) {
                     const updatedUsers = await Promise.all(participants.map(async (participant) => {
                         const updateUserQuery = `
-                                UPDATE "users"
+                                UPDATE "users"    
                                 SET "moneySpent" = "moneySpent" - ${deletedEvent.price}, "willParticipate" = array_remove("willParticipate", ${deletedEvent.id}::text)
                                 WHERE id=${participant}
                                 RETURNING *
                         `;
 
+                        console.log("Participant update query");
+                        console.log(updateUserQuery);
+
                         const user = await client.query(updateUserQuery);
+
+                        if (user.rowCount > 0) {
+                            return 1;
+                        }
+                        else {
+                            return 0;
+                        }
                     }));
+
+                    if (updatedUsers.length === 0) {
+                        return 0;
+                    }
+                    else {
+                        return 1;
+                    }
+                }
+                else {
+                    return 1;
                 }
             }));
         }
         //Deleting the events thats are organized by the deleted organizer 
         const deleteEventsQuery = `
-            DELETE FROM "upcomingEvents" WHERE organizer_ID = ${result.rows[0].id}
+            DELETE FROM "upcomingEvents" WHERE "upcomingEvents"."organizer_ID" = ${result.rows[0].id}
         `;
-        const deletedEvents = await client.query(deleteEventsQuery)
+        const deletedEvents = await client.query(deleteEventsQuery);
+
+        console.log(deletedEvents.rowCount);
     }
 
     //Removes the deleted user id from every other user chats array 
@@ -210,28 +235,47 @@ const removeUser = asyncHandler(async (req, res) => {
         if (result.rows[0].chats.length > 0) {
             const deletedUserChats = result.rows[0].chats;
 
-            await Promise.all(deletedUserChats.forEach(async (userId) => {
+            console.log("Chats array");
+            console.log(deletedUserChats);
+
+            const correctedUsers = await Promise.all(deletedUserChats.map(async (userId) => {
                 let removeChatQuery = `
                     UPDATE "users"
-                    SET "chats" = array_remove("chats", ${result.rows[0].id});
-                    WHERE id=${userId}
+                    SET "chats" = array_remove("chats", ${result.rows[0].id})
+                    WHERE id=${userId}    
                 `;
 
+                console.log(removeChatQuery);
+
                 const updateUserChats = await client.query(removeChatQuery);
+
+                if (updateUserChats.rowCount > 0) {
+                    return 1;
+                }
+                else {
+                    return 0;
+                }
             }));
+
+            console.log(correctedUsers);
 
             //Removes every message that the deleted user has send
             const deleteMessagesQuery = `
                 DELETE FROM "chats"
-                WHERE senderId = ${result.rows[0].id} || receiverId = ${result.rows[0].id}
+                WHERE "senderId" = ${result.rows[0].id} OR "receiverId" = ${result.rows[0].id}
             `;
 
+            console.log(deleteMessagesQuery);
+
             const deleteMessages = await client.query(deleteMessagesQuery);
+            console.log("Deleted messages count");
+            console.log(deleteMessages.rowCount);
         }
     }
 
+    const deletingUser = await client.query(`DELETE FROM "users" WHERE id=${id}`);
 
-    if (result.rowCount === 1) {
+    if (deletingUser.rowCount === 1) {
         res.status(200).json({ message: "User: " + id + " has been deleted!" })
     }
     else {
