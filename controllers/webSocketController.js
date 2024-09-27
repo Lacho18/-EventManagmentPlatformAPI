@@ -20,18 +20,25 @@ function webSocketEvents(wss, WebSocket) {
             console.log("Message data here");
             console.log(parsedData);
 
-            const senderImage = await client.query("SELECT \"userImage\" FROM \"users\" WHERE id = " + parsedData.senderId);
+            const senderImage = await client.query("SELECT \"userImage\", chats FROM \"users\" WHERE id = " + parsedData.senderId);
             parsedData['senderImage'] = senderImage.rows[0].userImage;
+            const receiverChats = await client.query("SELECT chats FROM \"users\" WHERE id = " + parsedData.receiverId);
 
             //Sends back the message to the sender and the receiver
             const senderSocket = activeSockets.get(parsedData.senderId);
             const receiverSocket = activeSockets.get(parsedData.receiverId);
 
             if (senderSocket && senderSocket.readyState === WebSocket.OPEN) {
+                parsedData['chats'] = senderImage.rows[0].chats;
+                console.log("CHATS DATA SENDER");
+                console.log(parsedData.chats);
                 senderSocket.send(JSON.stringify(parsedData));
             }
 
             if (receiverSocket && receiverSocket.readyState === WebSocket.OPEN) {
+                parsedData['chats'] = receiverChats.rows[0].chats;
+                console.log("CHATS DATA RECEIVER");
+                console.log(parsedData.chats);
                 receiverSocket.send(JSON.stringify(parsedData));
             }
         })

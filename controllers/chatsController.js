@@ -33,8 +33,17 @@ const getMessages = asyncHandler(async (req, res) => {
         });
     }
 
-    const receiverName = result.rows.find((singleResult) => singleResult.senderID === senderId);
+    let receiverName = result.rows.find((singleResult) => Number(singleResult.senderId) === Number(senderId));
 
+    const senderName = result.rows.find((singleResult) => Number(singleResult.receiverId) === Number(senderId));
+
+    if (!receiverName) {
+        return res.status(200).json({
+            message: "Successful request!", messages: result.rows,
+            receiverName: senderName.senderFirstName + " " + senderName.senderLastName,
+            receiverImage: senderName.senderImage
+        });
+    }
     return res.status(200).json({
         message: "Successful request!", messages: result.rows,
         receiverName: receiverName.receiverFirstName + " " + receiverName.receiverLastName,
@@ -50,10 +59,20 @@ const postMessage = asyncHandler(async (req, res) => {
     const updateUsersQuery = `
         UPDATE "users"
             SET "chats" = CASE
-            WHEN id = ${data.senderId} AND array_position("chats", ${data.receiverId}) IS NULL
-            THEN array_append("chats", ${data.receiverId})
-            WHEN id = ${data.receiverId} AND array_position("chats", ${data.senderId}) IS NULL
-            THEN array_append("chats", ${data.senderId})
+                WHEN id = ${data.senderId} THEN
+                CASE 
+                    WHEN array_position("chats", ${data.receiverId}) IS NOT NULL THEN
+                    array_prepend(${data.receiverId}, array_remove("chats", ${data.receiverId}))
+                ELSE
+                    array_append("chats", ${data.receiverId})
+            END
+                WHEN id = ${data.receiverId} THEN
+                CASE 
+                    WHEN array_position("chats", ${data.senderId}) IS NOT NULL THEN
+                    array_prepend(${data.senderId}, array_remove("chats", ${data.senderId}))
+                ELSE
+                    array_append("chats", ${data.senderId})
+            END
             ELSE "chats"
         END
         WHERE id IN (${data.senderId}, ${data.receiverId})
@@ -61,6 +80,11 @@ const postMessage = asyncHandler(async (req, res) => {
     `;
 
     const updateUsers = await client.query(updateUsersQuery);
+
+    console.log(updateUsers.rows);
+    console.log("UPDATED CHATS ARRAY OF USER");
+    updateUsers.rows.forEach(row => console.log(row.id + " " + row.firstName));
+    console.log(updateUsers.rows[0].chats);
 
     if (updateUsers.rowCount === 0) {
         return res.status(400).json({ message: "Invalid message data send. Please try again!" });
@@ -77,7 +101,8 @@ const postMessage = asyncHandler(async (req, res) => {
     const result = await client.query(query, values);
 
     if (result.rowCount > 0) {
-        return res.status(200).json({ message: "Message posted!" });
+        let currentUserChats = await client.query("SELECT chats FROM users WHERE id=" + data.senderId)
+        return res.status(200).json({ message: "Message posted!", userChats: currentUserChats.rows[0].chats });
     }
     else {
         return res.status(400).json({ message: "Error while posting the message appeared." });
