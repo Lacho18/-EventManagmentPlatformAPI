@@ -153,17 +153,83 @@ const updateUser = asyncHandler(async (req, res) => {
     }
 });
 
+/*
+    Functionality
+    1. Removes the user from data base
+    2. If organizer removes every event that he has organized
+    3. Removes deleted user from every user chats array
+*/
 const removeUser = asyncHandler(async (req, res) => {
     const { id } = JSON.parse(req.query.data);
 
     const query = `
         DELETE FROM users
         WHERE id=${id}
+        RETURNING *
     `;
 
     const result = await client.query(query);
 
-    console.log(query);
+    if (result.rowCount === 0) {
+        return res.status(404).json({ message: "Such user was not found!" });
+    }
+
+    if (result.rows[0].role === "organizer") {
+        //Deleting every event that is organized by the user
+        const allOrganizedEvents = await client.query("SELECT * FROM \"upcomingEvents\" WHERE \"organizer_ID\"=" + result.rows[0].id);
+
+        //If the deleted user has organized events
+        if (allOrganizedEvents.rowCount > 0) {
+            await Promise.all(allOrganizedEvents.rows.forEach(async (deletedEvent) => {
+                const participants = deletedEvent.participants;
+
+                //If the events thats are about to be deleted has users that will participate on
+                if (participants.length > 0) {
+                    const updatedUsers = await Promise.all(participants.map(async (participant) => {
+                        const updateUserQuery = `
+                                UPDATE "users"
+                                SET "moneySpent" = "moneySpent" - ${deletedEvent.price}, "willParticipate" = array_remove("willParticipate", ${deletedEvent.id}::text)
+                                WHERE id=${participant}
+                                RETURNING *
+                        `;
+
+                        const user = await client.query(updateUserQuery);
+                    }));
+                }
+            }));
+        }
+        //Deleting the events thats are organized by the deleted organizer 
+        const deleteEventsQuery = `
+            DELETE FROM "upcomingEvents" WHERE organizer_ID = ${result.rows[0].id}
+        `;
+        const deletedEvents = await client.query(deleteEventsQuery)
+    }
+
+    //Removes the deleted user id from every other user chats array 
+    if (result.rows[0].chats) {
+        if (result.rows[0].chats.length > 0) {
+            const deletedUserChats = result.rows[0].chats;
+
+            await Promise.all(deletedUserChats.forEach(async (userId) => {
+                let removeChatQuery = `
+                    UPDATE "users"
+                    SET "chats" = array_remove("chats", ${result.rows[0].id});
+                    WHERE id=${userId}
+                `;
+
+                const updateUserChats = await client.query(removeChatQuery);
+            }));
+
+            //Removes every message that the deleted user has send
+            const deleteMessagesQuery = `
+                DELETE FROM "chats"
+                WHERE senderId = ${result.rows[0].id} || receiverId = ${result.rows[0].id}
+            `;
+
+            const deleteMessages = await client.query(deleteMessagesQuery);
+        }
+    }
+
 
     if (result.rowCount === 1) {
         res.status(200).json({ message: "User: " + id + " has been deleted!" })
