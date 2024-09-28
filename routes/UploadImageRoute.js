@@ -18,9 +18,6 @@ const upload = multer({ storage: storage });
 
 // Route to handle file upload
 router.post('/', upload.single('file'), async (req, res) => {
-    console.log(req.file); // Logs file information
-    console.log(req.body.id); // Logs other form data
-
     try {
         // Ensure that the file has been uploaded and id is provided
         if (!req.file || !req.body.id) {
@@ -42,8 +39,6 @@ router.post('/', upload.single('file'), async (req, res) => {
         const values = [filePath, req.body.id];
         const result = await client.query(query, values);
 
-        console.log(result.rows[0]);
-
         res.json({ message: 'File uploaded and user updated successfully!', data: result.rows[0] });
     } catch (error) {
         console.error('Error updating user:', error);
@@ -51,8 +46,6 @@ router.post('/', upload.single('file'), async (req, res) => {
     }
 })
     .put('/', async (req, res) => {
-        console.log("SEGA PUK KAKVO");
-        console.log(req.body);
         const data = req.body;
 
         if (data.isClosed) {
@@ -66,8 +59,6 @@ router.post('/', upload.single('file'), async (req, res) => {
             const values = ['empty', data.userId];
 
             const result = await client.query(query, values);
-
-            console.log(result.rows);
 
             if (result.rowCount === 1) {
                 return res.status(200).json({ message: "Updated!", data: result.rows[0] });

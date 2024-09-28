@@ -1,7 +1,5 @@
 const asyncHandler = require('express-async-handler');
 const client = require('../connection');
-const fs = require('fs');
-const path = require('path');
 const { getRequestsHandler } = require("../functions/getRequestHandler");
 const { adminAccountCheck } = require("../functions/adminAccountCheck");
 
@@ -142,7 +140,7 @@ const updateUser = asyncHandler(async (req, res) => {
         UPDATE users
         SET ${settingData}
         WHERE id=${req.body.id}
-        RETURNING "id", "email", "firstName", "lastName", "role", "savedEvents";
+        RETURNING "id", "email", "firstName", "lastName", "role", "savedEvents", "userImage", "chats", "willParticipate";
     `;
 
     const result = await client.query(query);
@@ -178,9 +176,6 @@ const removeUser = asyncHandler(async (req, res) => {
         //Deleting every event that is organized by the user
         const allOrganizedEvents = await client.query(`SELECT * FROM "upcomingEvents" WHERE "upcomingEvents"."organizer_ID" = ${result.rows[0].id}`);
 
-        console.log("Deleted organizer events:");
-        console.log(allOrganizedEvents.rows);
-
         //If the deleted user has organized events
         if (allOrganizedEvents.rowCount > 0) {
             const updatedUsersAfterEventsDelete = await Promise.all(allOrganizedEvents.rows.map(async (deletedEvent) => {
@@ -195,9 +190,6 @@ const removeUser = asyncHandler(async (req, res) => {
                                 WHERE id=${participant}
                                 RETURNING *
                         `;
-
-                        console.log("Participant update query");
-                        console.log(updateUserQuery);
 
                         const user = await client.query(updateUserQuery);
 
@@ -226,8 +218,6 @@ const removeUser = asyncHandler(async (req, res) => {
             DELETE FROM "upcomingEvents" WHERE "upcomingEvents"."organizer_ID" = ${result.rows[0].id}
         `;
         const deletedEvents = await client.query(deleteEventsQuery);
-
-        console.log(deletedEvents.rowCount);
     }
 
     //Removes the deleted user id from every other user chats array 
@@ -235,17 +225,12 @@ const removeUser = asyncHandler(async (req, res) => {
         if (result.rows[0].chats.length > 0) {
             const deletedUserChats = result.rows[0].chats;
 
-            console.log("Chats array");
-            console.log(deletedUserChats);
-
             const correctedUsers = await Promise.all(deletedUserChats.map(async (userId) => {
                 let removeChatQuery = `
                     UPDATE "users"
                     SET "chats" = array_remove("chats", ${result.rows[0].id})
                     WHERE id=${userId}    
                 `;
-
-                console.log(removeChatQuery);
 
                 const updateUserChats = await client.query(removeChatQuery);
 
@@ -257,19 +242,13 @@ const removeUser = asyncHandler(async (req, res) => {
                 }
             }));
 
-            console.log(correctedUsers);
-
             //Removes every message that the deleted user has send
             const deleteMessagesQuery = `
                 DELETE FROM "chats"
                 WHERE "senderId" = ${result.rows[0].id} OR "receiverId" = ${result.rows[0].id}
             `;
 
-            console.log(deleteMessagesQuery);
-
             const deleteMessages = await client.query(deleteMessagesQuery);
-            console.log("Deleted messages count");
-            console.log(deleteMessages.rowCount);
         }
     }
 

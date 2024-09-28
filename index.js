@@ -1,7 +1,6 @@
 const express = require('express');
 const app = express();
 const path = require('path');
-const client = require('./connection.js');
 const bodyParser = require('body-parser');
 const cron = require('node-cron');
 const dailyUpdate = require('./functions/dailyEventsUpdate.js');

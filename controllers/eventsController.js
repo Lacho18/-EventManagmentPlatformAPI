@@ -1,6 +1,5 @@
 const asyncHandler = require('express-async-handler');
 const client = require('../connection');
-const { getRequestsHandler, getRequestsHandlerWithJoin } = require('../functions/getRequestHandler');
 
 //Function that get events by request
 const getEvents2 = asyncHandler(async (req, res) => {
@@ -31,11 +30,7 @@ const getEvents2 = asyncHandler(async (req, res) => {
     let newField;
     if (data.join) {
         //Concatenating all required fields from the other table in field named [joiningTable]_data
-        //newField = data.join.fieldsToGet.map((field) => `|| "${data.join.joiningWith}"."${field}" ||`).join(" ' ' ");
         newField = data.join.fieldsToGet.map((field) => `"${data.join.joiningWith}"."${field}" AS "${field}"`).join(", ");
-
-        //removing the first and last three letters from 'newField' variable
-        //newField = newField.slice(3, -3);
     }
 
     //Describes the conditions if given
@@ -60,7 +55,6 @@ const getEvents2 = asyncHandler(async (req, res) => {
     let offset;
     if (data.currentPage) {
         offset = (data.currentPage - 1) * data.limit;
-        console.log(offset && "OFFSET " + offset);
     }
 
     //Sets the order type of the objects if given
@@ -82,8 +76,6 @@ const getEvents2 = asyncHandler(async (req, res) => {
         ${limit ? "LIMIT " + limit : ""}
     `
 
-    console.log(query);
-
     const result = await client.query(query);
 
     if (result.rowCount > 0) {
@@ -99,15 +91,10 @@ const postEvent = asyncHandler(async (req, res) => {
     const data = req.body;
     const keys = Object.keys(data);
 
-    console.log("INSERTING DATA FOR EVENT");
-    console.log(data);
-
     //Checks for empty fields
     let emptyFields = false;
     keys.forEach(key => {
         const value = data[key];
-
-        console.log(value);
 
         if (value === null || value === 0 || value === '' || value === undefined) {
             emptyFields = true;
@@ -175,7 +162,6 @@ const updateEvent = asyncHandler(async (req, res) => {
     const data = req.body;
 
     data.location = Object.keys(data.location).map((key) => data.location[key]);
-    console.log(data.location);
 
     const updateQuery = `
     UPDATE "upcomingEvents"

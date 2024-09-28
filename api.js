@@ -16,5 +16,4 @@ app.get('/users', (req, res) => {
         }
     });
     client.end;
-})
-//client.connect();
+});

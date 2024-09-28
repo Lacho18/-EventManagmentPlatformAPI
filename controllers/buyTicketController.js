@@ -2,7 +2,6 @@ const asyncHandler = require('express-async-handler');
 const client = require('../connection');
 
 const buyTicket = asyncHandler(async (req, res) => {
-    console.log(req.body);
     const { eventId, userId, ticketsAmount } = req.body;
 
     //Finds the event and event data validations
@@ -45,8 +44,6 @@ const buyTicket = asyncHandler(async (req, res) => {
     `;
 
     const updatedEvent = await client.query(eventQuery);
-
-    console.log(updatedEvent.rows[0]);
 
     if (updatedEvent.rowCount === 0) {
         return res.status(400).json({ message: "Error while updating event data. Please try again!" });

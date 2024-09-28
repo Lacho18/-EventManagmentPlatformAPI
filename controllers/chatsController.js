@@ -81,11 +81,6 @@ const postMessage = asyncHandler(async (req, res) => {
 
     const updateUsers = await client.query(updateUsersQuery);
 
-    console.log(updateUsers.rows);
-    console.log("UPDATED CHATS ARRAY OF USER");
-    updateUsers.rows.forEach(row => console.log(row.id + " " + row.firstName));
-    console.log(updateUsers.rows[0].chats);
-
     if (updateUsers.rowCount === 0) {
         return res.status(400).json({ message: "Invalid message data send. Please try again!" });
     }
