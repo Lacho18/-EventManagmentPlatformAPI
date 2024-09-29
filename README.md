@@ -57,14 +57,17 @@ This is the server side of the event management system. This API handles all req
 
 1. users
    | id (PK) | email | password | firstName | lastName | dateOfBirth | chats | role | moneySpent | willParticipate | eventParticipate | gender | savedEvents | userImage |
+   |---------|-------------|-----------|-----------|----------|-------------|-------------|-----------|------------|-----------------|------------------|--------|-------------|---------------------|
    | 18 | Ivan@abv.bg | 1qaz2wsx | Ivan | Ivanov | 2002-06-12 | [1, 12, 3] | organizer | 120 | [3, 8, 5] | [2, 7, 12] | male | [3, 8, 2] | /public/image.jpg |
 
 2. upcomingEvents
    | id (PK) | name | description | location | duration | price | organizer_ID (FK) | image | events_date | places | participants |
+   |---------|------|-------------|----------|----------|-------|-------------------|-------|-------------|--------|--------------|
    | 3 | Concert of Ariana Grande | Description of the event | ["England", "London", "London Eye"] | 4 h | 120 | 18 | [URL, URL, URL] | 2025-04-12 | 3000 | [2, 7, 11, 30] |
 
 3. chats
    | id (PK) | senderId (FK) | receiverId (FK) | message | time_of_send |
+   |---------|---------------|-----------------|---------|--------------|
    | 30514 | 12 | 1 | "Hello" | 2024-09-27 |
 
 4. passedEvents - The structure is exactly the same as upcomingEvents table
